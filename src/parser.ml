@@ -70,54 +70,68 @@ let append s c =
   s ^ (String.make 1 c)
 
 
+let rev l =
+  let rec rev_r l lr =
+    match l with
+    | [] -> lr
+    | h::t -> rev_r t (h::lr)
+  in
+  rev_r l []
+
+
+let rec fill_buffer ic buff =
+  try
+    let c = input_char ic in
+    fill_buffer ic (c::buff)
+  with End_of_file -> rev buff
+    
 (* test if a character is a digit *)
 let is_digit d =
   let re = Str.regexp "[0-9]" in
   Str.string_match re (to_str d) 0
 
+let is_sep d =
+  match d with
+  '\n' | ' ' -> true
+  | _ -> false
 
 (* Scan for a number *)
-let rec _scan_number ic number =
-  try
-    let nc = input_char ic in
-    if is_digit nc then 
-      _scan_number ic (append number nc)
-    else
-      number
-  with End_of_file -> number
+let rec _scan_number buff number =
+  match buff with
+  | d::nbuff when is_digit d ->
+    _scan_number nbuff (append number d)
+  | _ -> number, buff
 
 
 (* Scan for a string *)
-let rec _scan_string ic str =
-  try
-    let nc = input_char ic in
-    match nc with
-    | '"' -> str
-    | _ ->  _scan_string ic (append str nc)
-  with End_of_file -> failwith("Non closing \"")
+let rec _scan_string buff str =
+  match buff with
+  | '"'::nbuff -> str, nbuff
+  | c::nbuff -> _scan_string nbuff (append str c)
+  | [] -> failwith("NON closing\"")
 
 
 (* lex | tokenize a file *)
 (* NOTE : This function is an exemple, it is not the real lexer *)
 let lex f =
-  let rec lex_r ic l =
-    try 
-      let nc = input_char ic in
-        match nc with
-        | c when is_digit c ->
-          let number = _scan_number ic (to_str c) in
-          lex_r ic (number::l)
-        | '"' ->
-          let mystring = _scan_string ic "" in
-          lex_r ic (mystring::l)
-        | '\n' | ' ' ->
-          lex_r ic l
-        | _ ->
-          failwith "Syntax error"
-    with End_of_file -> l
+  let rec lex_r buff l =
+    match buff with
+    | c::tail when is_digit c ->
+      let number, nbuff = _scan_number tail (to_str c) in
+      lex_r nbuff (number::l)
+    | c::tail when c == '"' ->
+      let mystring, nbuff = _scan_string tail "" in
+      lex_r nbuff (mystring::l)
+    | c::tail when c == ',' ->
+      lex_r nbuff ((to_str c)::l)
+    | c::tail when is_sep c ->
+      lex_r tail l
+    | [] -> l
+    | _ -> failwith "Syntax error"
   in
   let ic = open_in f in
-  lex_r ic []
+  let buff = fill_buffer ic [] in
+  rev (lex_r buff [])
 
 
 let _ =
