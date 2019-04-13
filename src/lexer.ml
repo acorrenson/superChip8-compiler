@@ -47,6 +47,11 @@ let extract_ins =
   let is_alpha d = match d with 'a'..'z' | 'A'..'Z' -> true | _ -> false
   in function pks -> extract is_alpha pks
 
+let find_eol pks =
+  let st = pks.string and pos = pks.pos in 
+  let rec find n = 
+    if n < pks.len && (st.[n] <> '\n') then find (n+1) else n in
+  find pos
 
 (* Build a peakable string from a file *)
 let fill_pks f =
@@ -66,11 +71,18 @@ let fill_pks f =
 let rec lex pks =
   let lex_c c =
     match c with
-    | ' ' | '\n' -> fwd pks; lex pks
-    | 'a'..'z' | 'A'..'Z' -> Lins (extract_ins pks)
-    | '0'..'9' -> Ladr (extract_int pks)
-    | ',' -> fwd pks; Lsep
-    | _ -> failwith("error...")
+    | ';' -> 
+      let eol = find_eol pks in fwdn pks eol; lex pks
+    | ' ' | '\n' ->
+      fwd pks; lex pks
+    | 'a'..'z' | 'A'..'Z' ->
+      Lins (extract_ins pks)
+    | '0'..'9' ->
+      Ladr (extract_int pks)
+    | ',' ->
+      fwd pks; Lsep
+    | _ ->
+      failwith("error...")
   in
   if pks.pos >= pks.len then Lend
   else lex_c pks.string.[pks.pos]

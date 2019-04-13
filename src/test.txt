@@ -1,2 +1,3 @@
+; comment
 ADD 1, 2
 JP 156
