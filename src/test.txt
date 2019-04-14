@@ -1,4 +1,2 @@
-; comment
-lbl:
-  ADD V1, 10
-  JP 156
+CLS
+DRW V0, V1, 3
