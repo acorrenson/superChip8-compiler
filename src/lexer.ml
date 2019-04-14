@@ -98,6 +98,6 @@ let lex_all f =
   in
   loop pks
 
-let main = 
-  lex_all "test.txt"
+(* let main = 
+  lex_all "test.txt" *)
 
