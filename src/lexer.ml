@@ -8,16 +8,18 @@
 
 (* Lexem type definition *)
 type lexem =
-  | Lins of string
-  | Ladr of int
-  | Lsep
-  | Lend
+  | Lsym of string (* Instruction *)
+  | Lnum of int (* numess *)
+  | Llbl (* label *)
+  | Lsep  (* coma (',') *)
+  | Lend  (* End of prog *)
 
 (* Pretty print lexems *)
 let pp_lexem lx =
   match lx with
-  | Lins str -> print_endline str
-  | Ladr adr -> print_endline (string_of_int adr)
+  | Lsym str -> print_endline str
+  | Lnum num -> print_endline (string_of_int num)
+  | Llbl -> print_endline ":"
   | Lsep -> print_endline ","
   | Lend -> print_endline "END"
 
@@ -43,8 +45,8 @@ let extract_int =
   in function pks -> int_of_string (extract is_int pks)
 
 (* extract an instruction *)
-let extract_ins = 
-  let is_alpha d = match d with 'a'..'z' | 'A'..'Z' -> true | _ -> false
+let extract_sym = 
+  let is_alpha d = match d with 'a'..'z' | 'A'..'Z' | '0'..'9' | '_' -> true | _ -> false
   in function pks -> extract is_alpha pks
 
 let find_eol pks =
@@ -66,19 +68,21 @@ let fill_pks f =
   init_pks s
 
 
-(* Extract the next lexem from
- * a peakable string and update it *)
+(* Extract the next lexem from *)
+ (* * a peakable string and update it *)
 let rec lex pks =
   let lex_c c =
     match c with
+    | ':' ->
+      fwd pks; Llbl
     | ';' -> 
-      let eol = find_eol pks in fwdn pks eol; lex pks
+      let eol = find_eol pks in fwdn pks (eol+1); lex pks
     | ' ' | '\n' ->
       fwd pks; lex pks
     | 'a'..'z' | 'A'..'Z' ->
-      Lins (extract_ins pks)
+      Lsym (extract_sym pks)
     | '0'..'9' ->
-      Ladr (extract_int pks)
+      Lnum (extract_int pks)
     | ',' ->
       fwd pks; Lsep
     | _ ->
@@ -98,6 +102,6 @@ let lex_all f =
   in
   loop pks
 
-(* let main = 
-  lex_all "test.txt" *)
+let main = 
+  lex_all "test.txt"
 

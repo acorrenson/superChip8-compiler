@@ -1,3 +1,4 @@
 ; comment
-ADD 1, 2
-JP 156
+lbl:
+  ADD V1, 10
+  JP 156
