@@ -29,39 +29,12 @@ let pp_ins i =
 exception Adress_out_of_range
 exception Non_existing_register
 
-
 let get_reg r =
   int_of_string (String.sub r 1 ((String.length r) - 1) )
 
 let is_reg x =
   let r = Str.regexp "V[0-9]+" in
   Str.string_match r x 0
-
-
-(* check if a register index is correct *)
-(* chip-8 has 16 avaliable registers *)
-let check_reg_index r =
-  match r with
-  | n when n < 16 && n >= 0 -> ()
-  | _ -> raise Non_existing_register
-
-
-(* check if an adress is correct *)
-(* chip-8 has 4096 8-bit memory slots *)
-let check_adr a =
-  match a with
-  | n when n < 4096 && n >= 0 -> ()
-  | _ -> raise Adress_out_of_range
-
-
-(* check if an instruction is correct *)
-let check_ins i =
-  match i with
-  | ADD (Reg r1, Reg r2) ->
-    check_reg_index r1; check_reg_index r2; i
-  | JP (Adr a) ->
-    check_adr a; i
-  | _ -> i
 
 
 let ext_arg pks =
@@ -91,11 +64,9 @@ let parser pks =
     | Lnum n -> failwith ("useless num " ^ (string_of_int n))
     | Llbl -> failwith "empty label"
     | Lsym "ADD" ->
-      let a, b = ext2_args pks in
-      check_ins ( ADD (a, b) )
+      let a, b = ext2_args pks in ADD (a, b)
     | Lsym "JP" ->
-      let a = ext_arg pks in
-      check_ins ( JP a )
+      let a = ext_arg pks in JP a
     | Lsym x ->
       match lex pks with
       | Llbl -> parser_r pks
@@ -130,17 +101,6 @@ let parse_all pks =
   in
   parse_all_r pks []
 
-(* TEST FOR CHECK FUNCTIONS *)
-let a = ADD (Reg 15, Reg 1)
-let b = JP (Adr 23)
-let c = JP (Adr 5000)
-
-let main = 
-  ignore (check_ins a); (* works *)
-  ignore (check_ins b); (* works *)
-  try ignore (check_ins c) (* should fail *)
-  with Adress_out_of_range ->
-    print_endline "JP 5000 is not a valid instruction"
 
 let _ =
   let pks = fill_pks "test.txt" in
