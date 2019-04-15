@@ -29,7 +29,8 @@ type ins =
   | CALL of arg
   | SE of arg * arg
   | SNE of arg * arg
-  | LD of arg * arg
+  | LD of arg
+  | LD2 of arg * arg
   | ADD of arg * arg
   | OR of arg * arg
   | AND of arg * arg
@@ -65,6 +66,9 @@ let is_reg x =
   let r = Str.regexp "V[0-9]+" in
   Str.string_match r x 0
 
+let is_adr x =
+  let r = Str.regexp "[0-9]+" in
+  Str.string_match r x 0
 
 let ext_arg pks =
   let l = lex pks in
@@ -112,6 +116,20 @@ let ext2_args pks =
   | _ -> pp_lexem l1; pp_lexem l2; pp_lexem l3; failwith "Expecting 2 args..."
 
 
+let process_ld pks =
+  let l1 = lex pks in
+  let l2 = lex pks in
+  let l3 = lex pks in
+  match (l1, l2, l3) with
+  | (Lsym n, Lsep, Lsym m) when n=="V0" -> LD2 (Reg 0, SAdr m)
+  | (Lsym n, Lsep, Lsym m) when n="I"   -> LD (SAdr m)
+  | (Lsym n, Lsep, Lsym m) when is_reg n -> LD2 (Reg (get_reg n), SAdr m)
+  | (Lsym n, Lsep, Lsym m) when n=="I"    && m=="DT"  -> LD2 (I, DT)
+  | (Lsym n, Lsep, Lsym m) when m=="DT"   && n=="I"   -> LD2 (DT, I)
+  | (Lsym n, Lsep, Lsym m) when is_reg n  && m=="K"   -> LD2 (SAdr n, K)
+  | (_, _, _) -> failwith "Incorrect use of LD"
+
+
 let parser pks =
   let rec parser_r pks =
     let l = lex pks in
@@ -129,7 +147,7 @@ let parser pks =
     | Lsym "SE" ->
       let a, b = ext2_args pks in SE (a, b)
     | Lsym "LD" ->
-      let a, b = ext2_args pks in LD (a, b)
+      process_ld pks
     | Lsym "SHL" ->
       let a = ext_arg pks in SHL a
     | Lsym "SHR" ->
@@ -175,7 +193,8 @@ let wb ins oc =
   | CALL args -> ()
   | SE (a, b) -> ()
   | SNE (a, b) -> ()
-  | LD (a, b) -> ()
+  | LD2 (a, b) -> ()
+  | LD a -> ()
   | OR (a, b) -> ()
   | AND (a, b) -> ()
   | XOR (a, b) -> ()
@@ -203,7 +222,8 @@ let set_adresses l =
 let rec replace_adresses l a =
   let rep x = 
     match x with
-    | LD (I, (SAdr s)) -> LD (I, (Adr (List.assoc s a)))
+    | LD2 (I, (SAdr s)) -> LD2 (I, (Adr (List.assoc s a)))
+    | LD (SAdr s) -> LD (Adr (List.assoc s a))
     | JP (SAdr s) -> JP (Adr (List.assoc s a))
     | _ as ins -> ins
   in
