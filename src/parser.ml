@@ -121,12 +121,12 @@ let process_ld pks =
   let l2 = lex pks in
   let l3 = lex pks in
   match (l1, l2, l3) with
-  | (Lsym n, Lsep, Lsym m) when n=="V0" -> LD2 (Reg 0, SAdr m)
-  | (Lsym n, Lsep, Lsym m) when n="I"   -> LD (SAdr m)
-  | (Lsym n, Lsep, Lsym m) when is_reg n -> LD2 (Reg (get_reg n), SAdr m)
-  | (Lsym n, Lsep, Lsym m) when n=="I"    && m=="DT"  -> LD2 (I, DT)
-  | (Lsym n, Lsep, Lsym m) when m=="DT"   && n=="I"   -> LD2 (DT, I)
-  | (Lsym n, Lsep, Lsym m) when is_reg n  && m=="K"   -> LD2 (SAdr n, K)
+  | (Lsym "V0", Lsep, Lsym m)   -> LD2 (Reg 0, SAdr m)
+  | (Lsym "I", Lsep, Lsym "DT") -> LD2 (I, DT)
+  | (Lsym "I", Lsep, Lsym m)    -> LD (SAdr m)
+  | (Lsym "DT", Lsep, Lsym "I") -> LD2 (DT, I)
+  | (Lsym n, Lsep, Lsym "K") when is_reg n  -> LD2 (SAdr n, K)
+  | (Lsym n, Lsep, Lsym m) when is_reg n    -> LD2 (Reg (get_reg n), SAdr m)
   | (_, _, _) -> failwith "Incorrect use of LD"
 
 
