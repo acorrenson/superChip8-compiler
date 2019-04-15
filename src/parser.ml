@@ -184,13 +184,17 @@ let wb ins oc =
     output_char oc (char_of_int (0x40+a) );
     output_char oc (char_of_int b)
   | JP (Adr a) ->
-    output_char oc (char_of_int (0xB0 + (hl a)));
+    output_char oc (char_of_int (0x10 + (hl a)));
     output_char oc (char_of_int (hr a))
   | CLS ->
     output_char oc (char_of_int 0x00);
     output_char oc (char_of_int 0xE0)
-  | RET -> ()
-  | CALL args -> ()
+  | RET ->
+    output_char oc (char_of_int 0x00);
+    output_char oc (char_of_int 0xEE)
+  | CALL (Adr a) ->
+    output_char oc (char_of_int (0x20 + (hl a)));
+    output_char oc (char_of_int (hr a))
   | SE (a, b) -> ()
   | SNE (a, b) -> ()
   | LD2 (a, b) -> ()
@@ -246,5 +250,5 @@ let _ =
   let l3 = replace_adresses l l2 in
   List.iter (fun (a, b) -> print_string (a^" : "); print_int b; print_newline ()) l2;
   List.iter pp_ins l3;
-  (* List.iter (fun x -> wb x oc) (parse_all pks); *)
+  List.iter (fun x -> wb x oc) l3;
   close_out oc
