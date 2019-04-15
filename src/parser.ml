@@ -12,6 +12,7 @@ open Printf
 type arg =
   | Reg of int
   | Adr of int
+  | SAdr of string
   | Cst of int
   | I (* adress register *)
   | F 
@@ -53,6 +54,7 @@ let pp_ins i =
   | ADD (Reg n, Cst m) ->
     print_endline ("ADD V" ^ (string_of_int n) ^ " " ^ (string_of_int m))
   | JP (Adr n) -> print_endline ("JP " ^ (string_of_int n))
+  | JP (SAdr s) -> print_endline ("JP " ^ s)
   | _ -> print_endline "INS ..."
 
 
@@ -67,8 +69,8 @@ let is_reg x =
 let ext_arg pks =
   let l = lex pks in
   match l with
-  | Lnum n -> Adr n
   | Lsym n when is_reg n -> Reg (get_reg n)
+  | Lsym n -> SAdr n
   | _ -> failwith "Expecting arg..."
 
 let ext3_args pks =
@@ -91,10 +93,10 @@ let ext2_args pks =
   | (Lsym n, Lsep, Lnum m) when is_reg n -> Reg (get_reg n), Cst m
   (* Vx, Vy *)
   | (Lsym n, Lsep, Lsym m) when is_reg n && is_reg m -> Reg (get_reg n), Reg (get_reg m)
-  (* I, Adr *)
-  | (Lsym "I", Lsep, Lnum m) -> I, Adr  m
   (* I, Vx *)
   | (Lsym "I", Lsep, Lsym m) when is_reg m -> I, Reg (get_reg m)
+  (* I, Adr *)
+  | (Lsym "I", Lsep, Lsym m) -> I, SAdr  m
   (* DT, Vx *)
   | (Lsym "DT", Lsep, Lsym m) when is_reg m -> DT, Reg (get_reg m)
   (* ST, Vx *)
@@ -189,18 +191,40 @@ let wb ins oc =
   | _ -> ()
 
 
+let set_adresses l =
+  let rec set_rec l a c =
+    match l with
+    | (LBL x)::tail -> set_rec tail ((x, c)::a) c
+    | [] -> a
+    | _::tail -> set_rec tail a (c+2)
+  in
+  set_rec l [] 0x200
+
+let rec replace_adresses l a =
+  let rep x = 
+    match x with
+    | LD (I, (SAdr s)) -> LD (I, (Adr (List.assoc s a)))
+    | JP (SAdr s) -> JP (Adr (List.assoc s a))
+    | _ as ins -> ins
+  in
+  List.map rep l
+
 let parse_all pks =
   let rec parse_all_r pks l =
     match parser pks with
     | END -> l
     | _ as i -> parse_all_r pks (i::l)
   in
-  parse_all_r pks []
+  List.rev (parse_all_r pks [])
 
 
 let _ =
   let pks = fill_pks "test.txt" in
   let oc = open_out_bin "test.rom" in
-  (* List.iter pp_ins (List.rev (parse_all pks)); *)
-  List.iter (fun x -> wb x oc) (List.rev (parse_all pks));
+  let l = parse_all pks in
+  let l2 = set_adresses l in
+  let l3 = replace_adresses l l2 in
+  List.iter (fun (a, b) -> print_string (a^" : "); print_int b; print_newline ()) l2;
+  List.iter pp_ins l3;
+  (* List.iter (fun x -> wb x oc) (parse_all pks); *)
   close_out oc
