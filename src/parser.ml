@@ -36,7 +36,7 @@ type ins =
   | AND of arg * arg
   | XOR of arg * arg
   | SUB of arg * arg
-  | SHR of arg
+  | SHR of arg * arg
   | SUBN of arg * arg
   | SHL of arg
   | RND of arg * arg
@@ -151,7 +151,7 @@ let parser pks =
     | Lsym "SHL" ->
       let a = ext_arg pks in SHL a
     | Lsym "SHR" ->
-      let a = ext_arg pks in SHR a
+      let a, b = ext2_args pks in SHR (a, b)
     | Lsym "SUB" ->
       let a, b = ext2_args pks in SUB (a, b)
     | Lsym "SUBN" ->
@@ -180,9 +180,6 @@ let wb ins oc =
   | ADD (Reg a, Reg b) ->
     output_char oc (char_of_int (0x80+a) );
     output_char oc (char_of_int (b*16 + 4))
-  | ADD (Reg a, Cst b) ->
-    output_char oc (char_of_int (0x40+a) );
-    output_char oc (char_of_int b)
   | JP (Adr a) ->
     output_char oc (char_of_int (0x10 + (hl a)));
     output_char oc (char_of_int (hr a))
@@ -195,15 +192,40 @@ let wb ins oc =
   | CALL (Adr a) ->
     output_char oc (char_of_int (0x20 + (hl a)));
     output_char oc (char_of_int (hr a))
-  | SE (a, b) -> ()
-  | SNE (a, b) -> ()
-  | LD2 (a, b) -> ()
+  | SE (Reg x, Cst c) ->
+    output_char oc (char_of_int (0x30 + x));
+    output_char oc (char_of_int c)
+  | SE (Reg x, Reg y) ->
+    output_char oc (char_of_int (0x50 + x));
+    output_char oc (char_of_int (y*16))
+  | SNE (Reg x, Cst k) ->
+    output_char oc (char_of_int (0x40 + x));
+    output_char oc (char_of_int k)
+  | LD2 (Reg x, Cst k) ->
+    output_char oc (char_of_int (0x60 + x));
+    output_char oc (char_of_int k)
+  | ADD (Reg x, Cst k) ->
+    output_char oc (char_of_int (0x70 + x));
+    output_char oc (char_of_int k)
+  | LD2 (Reg x, Reg y) ->
+    output_char oc (char_of_int (0x80 + x));
+    output_char oc (char_of_int (y*16))
   | LD a -> ()
-  | OR (a, b) -> ()
-  | AND (a, b) -> ()
-  | XOR (a, b) -> ()
-  | SUB (a, b) -> ()
-  | SHR a -> ()
+  | OR (Reg x, Reg y) ->
+    output_char oc (char_of_int (0x80 + x));
+    output_char oc (char_of_int (y*16 + 1))
+  | AND (Reg x, Reg y) ->
+    output_char oc (char_of_int (0x80 + x));
+    output_char oc (char_of_int (y*16 + 2))
+  | XOR (Reg x, Reg y) ->
+    output_char oc (char_of_int (0x80 + x));
+    output_char oc (char_of_int (y*16 + 3))
+  | SUB (Reg x, Reg y) ->
+    output_char oc (char_of_int (0x80 + x));
+    output_char oc (char_of_int (y*16 + 5))
+  | SHR (Reg x, Reg y) ->
+    output_char oc (char_of_int (0x80 + x));
+    output_char oc (char_of_int (y*16 + 6))
   | SUBN (a, b) -> ()
   | SHL a -> ()
   | RND (a, b) -> ()
