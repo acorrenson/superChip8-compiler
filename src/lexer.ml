@@ -6,18 +6,22 @@
 (* This lexer is inspired by this document *)
 (* https://caml.inria.fr/pub/docs/oreilly-book/html/book-ora058.html *)
 
+open Printf
+
 (* Lexem type definition *)
 type lexem =
-  | Lins of string
-  | Ladr of int
-  | Lsep
-  | Lend
+  | Lsym of string (* Instruction *)
+  | Lnum of int (* numess *)
+  | Llbl (* label *)
+  | Lsep  (* coma (',') *)
+  | Lend  (* End of prog *)
 
 (* Pretty print lexems *)
 let pp_lexem lx =
   match lx with
-  | Lins str -> print_endline str
-  | Ladr adr -> print_endline (string_of_int adr)
+  | Lsym str -> print_endline str
+  | Lnum num -> print_endline (string_of_int num)
+  | Llbl -> print_endline ":"
   | Lsep -> print_endline ","
   | Lend -> print_endline "END"
 
@@ -43,15 +47,48 @@ let extract_int =
   in function pks -> int_of_string (extract is_int pks)
 
 (* extract an instruction *)
-let extract_ins = 
-  let is_alpha d = match d with 'a'..'z' | 'A'..'Z' -> true | _ -> false
+let extract_sym = 
+  let is_alpha d = match d with 'a'..'z' | 'A'..'Z' | '0'..'9' | '_' | '-' -> true | _ -> false
   in function pks -> extract is_alpha pks
 
-let find_eol pks =
+let hex_of_char c =
+  let hx = [
+      ('A', 10); ('B', 11); ('C', 12); ('D', 13); ('E', 14); ('F', 15)
+  ] in
+  match c with
+  | '0'..'9' -> int_of_string (String.make 1 c)
+  | 'A'..'F' -> List.assoc c hx
+  | _ -> failwith "Impossible hex conversion"
+
+
+let rec hex s i a =
+  let l = String.length s in
+  if i < l then (
+    let c = float_of_int ( hex_of_char (s.[i])) in
+    let b = a +. (16.0 ** float_of_int (l - i - 1)) *. c in
+    hex s (i+1) b
+  )
+  else (int_of_float a)
+
+let extract_hex pks =   
+  let s = extract_sym pks in
+  hex s 0 0.0
+
+(* let find_eol pks =
   let st = pks.string and pos = pks.pos in 
   let rec find n = 
-    if n < pks.len && (st.[n] <> '\n') then find (n+1) else n in
-  find pos
+    if n < pks.len && (st.[n] != '\n') then find (n+1) else (
+      Printf.printf "Found %d %c %d \n" n (st.[n]) pks.len; n
+    )
+  in
+  find pos *)
+
+let rec find_eol pks =
+  if pks.pos < pks.len then
+    match pks.string.[pks.pos] with
+    | '\n' -> ()
+    | _ -> fwd pks; find_eol pks
+  else ()
 
 (* Build a peakable string from a file *)
 let fill_pks f =
@@ -66,22 +103,27 @@ let fill_pks f =
   init_pks s
 
 
-(* Extract the next lexem from
- * a peakable string and update it *)
+(* Extract the next lexem from *)
+ (* * a peakable string and update it *)
 let rec lex pks =
   let lex_c c =
     match c with
+    | ':' ->
+      fwd pks; Llbl
     | ';' -> 
-      let eol = find_eol pks in fwdn pks eol; lex pks
-    | ' ' | '\n' ->
+      find_eol pks; lex pks
+    | '#' ->
+      fwd pks; Lnum (extract_hex pks)
+    | ' ' | '\n' | '\t' ->
       fwd pks; lex pks
     | 'a'..'z' | 'A'..'Z' ->
-      Lins (extract_ins pks)
+      Lsym (extract_sym pks)
     | '0'..'9' ->
-      Ladr (extract_int pks)
+      Lnum (extract_int pks)
     | ',' ->
       fwd pks; Lsep
-    | _ ->
+    | _ as c ->
+      print_endline ("error : " ^ (String.make 1 c));
       failwith("error...")
   in
   if pks.pos >= pks.len then Lend
@@ -98,6 +140,5 @@ let lex_all f =
   in
   loop pks
 
-(* let main = 
-  lex_all "test.txt" *)
-
+let main = 
+  lex_all "brix.txt"

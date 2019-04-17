@@ -1,3 +1,1 @@
-; comment
-ADD 1, 2
-JP 156
+LD VE, 5
