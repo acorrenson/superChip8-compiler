@@ -1,6 +1,6 @@
 main:
   CLS
-  DRW V0, V1, 3
+  DRW V0, V1, #E
   LD I, loop
   LD V0, loop
   JP loop

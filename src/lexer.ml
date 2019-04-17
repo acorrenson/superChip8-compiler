@@ -49,6 +49,28 @@ let extract_sym =
   let is_alpha d = match d with 'a'..'z' | 'A'..'Z' | '0'..'9' | '_' -> true | _ -> false
   in function pks -> extract is_alpha pks
 
+let hex_of_char c =
+  let hx = [
+      ('A', 10); ('B', 11); ('C', 12); ('D', 13); ('E', 14); ('F', 15)
+  ] in
+  match c with
+  | '0'..'9' -> int_of_string (String.make 1 c)
+  | 'A'..'F' -> List.assoc c hx
+  | _ -> failwith "Impossible hex conversion"
+
+let extract_hex pks = 
+  let rec hex s i a =
+    let l = String.length s in
+    if i < l then (
+      let c = float_of_int ( hex_of_char (s.[i])) in
+      let b = a +. (16.0 ** float_of_int (l - i - 1)) *. c in
+      hex s (i+1) b
+    )
+    else (int_of_float a)
+  in
+  let s = extract_sym pks in
+  hex s 0 0.0
+
 let find_eol pks =
   let st = pks.string and pos = pks.pos in 
   let rec find n = 
@@ -77,6 +99,8 @@ let rec lex pks =
       fwd pks; Llbl
     | ';' -> 
       let eol = find_eol pks in fwdn pks (eol+1); lex pks
+    | '#' ->
+      fwd pks; Lnum (extract_hex pks)
     | ' ' | '\n' ->
       fwd pks; lex pks
     | 'a'..'z' | 'A'..'Z' ->
@@ -104,4 +128,5 @@ let lex_all f =
 
 let main = 
   lex_all "test.txt"
+
 
