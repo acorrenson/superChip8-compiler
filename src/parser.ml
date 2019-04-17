@@ -38,11 +38,11 @@ type ins =
   | SUB of arg * arg
   | SHR of arg * arg
   | SUBN of arg * arg
-  | SHL of arg
+  | SHL of arg * arg
   | RND of arg * arg
   | DRW of arg * arg * arg
-  | SKP of arg * arg
-  | SKNP of arg * arg
+  | SKP of arg
+  | SKNP of arg
   | JP of arg
   | END
   | LBL of string
@@ -149,7 +149,7 @@ let parser pks =
     | Lsym "LD" ->
       process_ld pks
     | Lsym "SHL" ->
-      let a = ext_arg pks in SHL a
+      let a, b = ext2_args pks in SHL (a, b)
     | Lsym "SHR" ->
       let a, b = ext2_args pks in SHR (a, b)
     | Lsym "SUB" ->
@@ -226,12 +226,60 @@ let wb ins oc =
   | SHR (Reg x, Reg y) ->
     output_char oc (char_of_int (0x80 + x));
     output_char oc (char_of_int (y*16 + 6))
-  | SUBN (a, b) -> ()
-  | SHL a -> ()
-  | RND (a, b) -> ()
-  | DRW (a, b, c) -> ()
-  | SKP (a, b) -> ()
-  | SKNP (a, b) -> ()
+  | SUBN (Reg x, Reg y) ->
+    output_char oc (char_of_int (0x80 + x));
+    output_char oc (char_of_int (y*16 + 7))
+  | SHL (Reg x, Reg y) ->
+    output_char oc (char_of_int (0x80 + x));
+    output_char oc (char_of_int (y*16 + 14))
+  | SNE (Reg x, Reg y) ->
+    output_char oc (char_of_int (0x90 + x));
+    output_char oc (char_of_int (y*16))
+  | LD2 (I, Adr n) ->
+    output_char oc (char_of_int (0xA0 + hl (n)));
+    output_char oc (char_of_int (hr n))
+  | LD2 (Reg 0, Adr n) ->
+    output_char oc (char_of_int (0xB0 + hl (n)));
+    output_char oc (char_of_int (hr n))
+  | RND (Reg x, Cst k) ->
+    output_char oc (char_of_int (0xC0 + x));
+    output_char oc (char_of_int k)
+  | DRW (Reg x, Reg y, Cst n) ->
+    output_char oc (char_of_int (0xD0 + x));
+    output_char oc (char_of_int (16*y + n))
+  | SKP (Reg x) ->
+    output_char oc (char_of_int (0xE0 + x));
+    output_char oc (char_of_int 0x9E)
+  | SKNP (Reg x) ->
+    output_char oc (char_of_int (0xE0 + x));
+    output_char oc (char_of_int 0xA1)
+  | LD2 (Reg x, DT) ->
+    output_char oc (char_of_int (0xF0 + x));
+    output_char oc (char_of_int 0x07)
+  | LD2 (Reg x, K) ->
+    output_char oc (char_of_int (0xF0 + x));
+    output_char oc (char_of_int 0x0A)
+  | LD2 (DT, Reg x) ->
+    output_char oc (char_of_int (0xF0 + x));
+    output_char oc (char_of_int 0x15)
+  | LD2 (ST, Reg x) ->
+    output_char oc (char_of_int (0xF0 + x));
+    output_char oc (char_of_int 0x18)
+  | ADD (I, Reg x) ->
+    output_char oc (char_of_int (0xF0 + x));
+    output_char oc (char_of_int 0x1E)
+  | LD2 (F, Reg x) ->
+    output_char oc (char_of_int (0xF0 + x));
+    output_char oc (char_of_int 0x29)
+  | LD2 (B, Reg x) ->
+    output_char oc (char_of_int (0xF0 + x));
+    output_char oc (char_of_int 0x33)
+  | LD2 (I, Reg x) ->
+    output_char oc (char_of_int (0xF0 + x));
+    output_char oc (char_of_int 0x55)
+  | LD2 (Reg x, I) ->
+    output_char oc (char_of_int (0xF0 + x));
+    output_char oc (char_of_int 0x65)
   | END -> ()
   | _ -> ()
 
