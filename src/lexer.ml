@@ -51,6 +51,7 @@ let extract_sym =
   let is_alpha d = match d with 'a'..'z' | 'A'..'Z' | '0'..'9' | '_' | '-' -> true | _ -> false
   in function pks -> extract is_alpha pks
 
+(* Turn a single hexadecimal digit into decimal *)
 let hex_of_char c =
   let hx = [
       ('A', 10); ('B', 11); ('C', 12); ('D', 13); ('E', 14); ('F', 15)
@@ -60,7 +61,7 @@ let hex_of_char c =
   | 'A'..'F' -> List.assoc c hx
   | _ -> failwith "Impossible hex conversion"
 
-
+(* Hexadecimal conversion *)
 let rec hex s i a =
   let l = String.length s in
   if i < l then (
@@ -70,19 +71,12 @@ let rec hex s i a =
   )
   else (int_of_float a)
 
+(* Extract an hexadecimal constant *)
 let extract_hex pks =   
   let s = extract_sym pks in
   hex s 0 0.0
 
-(* let find_eol pks =
-  let st = pks.string and pos = pks.pos in 
-  let rec find n = 
-    if n < pks.len && (st.[n] != '\n') then find (n+1) else (
-      Printf.printf "Found %d %c %d \n" n (st.[n]) pks.len; n
-    )
-  in
-  find pos *)
-
+(* Jump to next end_of_line *)
 let rec find_eol pks =
   if pks.pos < pks.len then
     match pks.string.[pks.pos] with
@@ -139,6 +133,3 @@ let lex_all f =
     | _ as l -> pp_lexem l; loop pks
   in
   loop pks
-
-let main = 
-  lex_all "brix.txt"

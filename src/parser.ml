@@ -8,13 +8,13 @@ open Str
 open Lexer
 open Printf
 
-(* Type for adresses and registers *)
+(* Type for addresses and registers *)
 type arg =
   | Reg of int
-  | Adr of int
-  | SAdr of string
+  | Addr of int
+  | Saddr of string
   | Cst of int
-  | I (* adress register *)
+  | I (* address register *)
   | F 
   | B
   | DT  (* delay Timer *)
@@ -52,7 +52,7 @@ type ins =
 let pp_arg a =
   match a with
   | Reg a -> print_int a; print_newline ();
-  | Adr n -> print_int n; print_newline ();
+  | Addr n -> print_int n; print_newline ();
   | Cst n -> print_int n; print_newline ();
   | I -> print_char 'I'; print_newline ();
   | K -> print_char 'K'; print_newline ();
@@ -60,8 +60,7 @@ let pp_arg a =
   | B -> print_char 'B'; print_newline ();
   | DT -> print_string "DT"; print_newline ();
   | ST -> print_string "ST"; print_newline ();
-  | SAdr a -> print_string a; print_newline ();
-  | _ -> ()
+  | Saddr a -> print_string a; print_newline ()
 
 let pp_ins i =
   match i with
@@ -69,8 +68,8 @@ let pp_ins i =
     print_endline ("ADD V" ^ (string_of_int n) ^ " V" ^ (string_of_int m))
   | ADD (Reg n, Cst m) ->
     print_endline ("ADD V" ^ (string_of_int n) ^ " " ^ (string_of_int m))
-  | JP (Adr n) -> print_endline ("JP " ^ (string_of_int n))
-  | JP (SAdr s) -> print_endline ("JP " ^ s)
+  | JP (Addr n) -> print_endline ("JP " ^ (string_of_int n))
+  | JP (Saddr s) -> print_endline ("JP " ^ s)
   | ADD (a, b) -> print_endline "ADD"
   | LD a -> print_endline "LD a"
   | LD2 (Reg a, Reg b) -> print_endline "LD V V"
@@ -81,7 +80,7 @@ let pp_ins i =
   | LD2 (B, Reg a) -> print_endline "LD B V"
   | LD2 (Reg a, Cst k) -> print_endline "LD V cst"
   | LD2 (Reg a, K) -> print_endline "LD V K"
-  | LD2 (I, Adr a) -> print_endline "LD V cst"
+  | LD2 (I, Addr a) -> print_endline "LD V cst"
   | LD2 (a, b) -> print_endline "Ukn LD"; pp_arg a; pp_arg b
   | XOR (a, b) -> print_endline "XOR"
   | OR (a, b) -> print_endline "OR"
@@ -104,7 +103,6 @@ let pp_ins i =
   | END -> print_endline "END"
   | RND (a, b) -> print_endline "RND"
   | JP2 (_, _) -> print_endline "JP2"
-  (* | _ -> print_endline "INS ..." *)
 
 
 let get_reg r =
@@ -114,7 +112,7 @@ let is_reg x =
   let r = Str.regexp "V[0-9A-F]+" in 
   Str.string_match r x 0
 
-let is_adr x =
+let is_addr x =
   let r = Str.regexp "[0-9]+" in
   Str.string_match r x 0
 
@@ -122,7 +120,7 @@ let ext_arg pks =
   let l = lex pks in
   match l with
   | Lsym n when is_reg n -> Reg (get_reg n)
-  | Lsym n -> SAdr n
+  | Lsym n -> Saddr n
   | Lnum n -> Cst n
   | _ -> failwith "Expecting arg..."
 
@@ -148,8 +146,8 @@ let ext2_args pks =
   | (Lsym n, Lsep, Lsym m) when is_reg n && is_reg m -> Reg (get_reg n), Reg (get_reg m)
   (* I, Vx *)
   | (Lsym "I", Lsep, Lsym m) when is_reg m -> I, Reg (get_reg m)
-  (* I, Adr *)
-  | (Lsym "I", Lsep, Lsym m) -> I, SAdr  m
+  (* I, addr *)
+  | (Lsym "I", Lsep, Lsym m) -> I, Saddr  m
   (* DT, Vx *)
   | (Lsym "DT", Lsep, Lsym m) when is_reg m -> DT, Reg (get_reg m)
   (* ST, Vx *)
@@ -176,12 +174,12 @@ let process_ld pks =
   | (Lsym n, Lsep, Lsym "ST") when is_reg n -> LD2 (Reg (get_reg n), ST)
   | (Lsym "I", Lsep, Lsym n) when is_reg n  -> LD2 (I, Reg (get_reg n))
   | (Lsym n, Lsep, Lsym "I") when is_reg n  -> LD2 (Reg (get_reg n), I)
-  | (Lsym "I", Lsep, Lsym m)    -> LD2 (I, SAdr m)
+  | (Lsym "I", Lsep, Lsym m)    -> LD2 (I, Saddr m)
   | (Lsym n, Lsep, Lsym "K") when is_reg n  -> LD2 (Reg (get_reg n), K)
   | (Lsym "B", Lsep, Lsym n) when is_reg n  -> LD2 (B, Reg (get_reg n))
   | (Lsym "F", Lsep, Lsym n) when is_reg n  -> LD2 (F, Reg (get_reg n))
   | (Lsym n, Lsep, Lsym m) when is_reg n && is_reg m -> LD2 (Reg (get_reg n), Reg (get_reg m))
-  | (Lsym n, Lsep, Lsym m) when is_reg n    -> LD2 (Reg (get_reg n), SAdr m)
+  | (Lsym n, Lsep, Lsym m) when is_reg n    -> LD2 (Reg (get_reg n), Saddr m)
   | (Lsym n, Lsep, Lnum m) when is_reg n    -> LD2 (Reg (get_reg n), Cst m)
   | (a, _, b) -> pp_lexem a; pp_lexem b; failwith "Incorrect use of LD"
 
@@ -239,6 +237,12 @@ let parser pks =
   in
   parser_r pks
 
+
+(* (* --------------------------------------- *)
+(* - Write binary | machine-code         - *)
+(* --------------------------------------- *)
+
+
 let hr i = i land 0x0FF
 let hl i = (i land 0xF00) lsr 8
 
@@ -248,10 +252,10 @@ let wb ins oc =
   | ADD (Reg a, Reg b) ->
     output_char oc (char_of_int (0x80+a) );
     output_char oc (char_of_int (b*16 + 4))
-  | JP (Adr a) ->
+  | JP (addr a) ->
     output_char oc (char_of_int (0x10 + (hl a)));
     output_char oc (char_of_int (hr a))
-  | JP2 (Reg x, Adr a) ->
+  | JP2 (Reg x, addr a) ->
     output_char oc (char_of_int (0xB0 + (hl a)));
     output_char oc (char_of_int (hr a))
   | CLS ->
@@ -260,7 +264,7 @@ let wb ins oc =
   | RET ->
     output_char oc (char_of_int 0x00);
     output_char oc (char_of_int 0xEE)
-  | CALL (Adr a) ->
+  | CALL (addr a) ->
     output_char oc (char_of_int (0x20 + (hl a)));
     output_char oc (char_of_int (hr a))
   | SE (Reg x, Cst c) ->
@@ -305,7 +309,7 @@ let wb ins oc =
   | SNE (Reg x, Reg y) ->
     output_char oc (char_of_int (0x90 + x));
     output_char oc (char_of_int (y*16))
-  | LD2 (I, Adr n) ->
+  | LD2 (I, addr n) ->
     output_char oc (char_of_int (0xA0 + hl (n)));
     output_char oc (char_of_int (hr n))
   | RND (Reg x, Cst k) ->
@@ -354,7 +358,8 @@ let wb ins oc =
   | _ as i -> print_endline "BIN Not found"; pp_ins i
 
 
-let set_adresses l =
+(* Set an address for each label *)
+let set_addresses l =
   let rec set_rec l a c =
     match l with
     | (LBL x)::tail -> set_rec tail ((x, c)::a) c
@@ -363,18 +368,20 @@ let set_adresses l =
   in
   set_rec l [] 0x200
 
-let rec replace_adresses l a =
+(* Replace all labels by their adresses *)
+let rec replace_addresses l a =
   let rep x = 
     match x with
-    | LD2 (I, (SAdr s)) -> LD2 (I, (Adr (List.assoc s a)))
-    | LD (SAdr s) -> LD (Adr (List.assoc s a))
-    | CALL (SAdr s) -> CALL (Adr (List.assoc s a))
-    | JP2 (Reg x, SAdr s) -> JP2 (Reg x, Adr (List.assoc s a))
-    | JP (SAdr s) -> JP (Adr (List.assoc s a))
+    | LD2 (I, (Saddr s)) -> LD2 (I, (addr (List.assoc s a)))
+    | LD (Saddr s) -> LD (addr (List.assoc s a))
+    | CALL (Saddr s) -> CALL (addr (List.assoc s a))
+    | JP2 (Reg x, Saddr s) -> JP2 (Reg x, addr (List.assoc s a))
+    | JP (Saddr s) -> JP (addr (List.assoc s a))
     | _ as ins -> ins
   in
   List.map rep l
 
+(* Parse a peakable string *)
 let parse_all pks =
   let rec parse_all_r pks l =
     match parser pks with
@@ -383,14 +390,13 @@ let parse_all pks =
   in
   List.rev (parse_all_r pks [])
 
-
 let _ =
   let pks = fill_pks "brix.txt" in
   let oc = open_out_bin "brix.rom" in
   let l = parse_all pks in
-  let l2 = set_adresses l in
-  let l3 = replace_adresses l l2 in
+  let l2 = set_addresses l in
+  let l3 = replace_addresses l l2 in
   List.iter (fun (a, b) -> print_string (a^" : "); print_int b; print_newline ()) l2;
   (* List.iter pp_ins l3; *)
   List.iter (fun x -> wb x oc) l3;
-  close_out oc
+  close_out oc *)
