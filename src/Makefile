@@ -1,8 +1,8 @@
 
-all: parser clean
+all: assembler clean
 
-parser: parser.ml lexer.ml asembler.ml
-	ocamlc -o asembler str.cma lexer.ml parser.ml asembler.ml
+assembler: parser.ml lexer.ml assembler.ml
+	ocamlc -o assembler str.cma lexer.ml parser.ml assembler.ml
 
 clean:
 	rm -rf *.cmi *.cmo

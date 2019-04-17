@@ -178,7 +178,7 @@ let parse_file f =
   List.iter (fun x -> wb x oc) final;
   close_out oc
 
-let asembler =
+let assembler =
   let fn = Sys.argv.(1) in
   print_endline (name fn);
   parse_file fn
