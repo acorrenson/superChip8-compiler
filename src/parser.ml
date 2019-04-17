@@ -44,6 +44,7 @@ type ins =
   | SKP of arg
   | SKNP of arg
   | JP of arg
+  | DW of arg
   | END
   | LBL of string
 
@@ -60,10 +61,10 @@ let pp_ins i =
 
 
 let get_reg r =
-  int_of_string (String.sub r 1 ((String.length r) - 1) )
+  hex (String.sub r 1 ((String.length r) - 1) ) 0 0.0
 
 let is_reg x =
-  let r = Str.regexp "V[0-9]+" in
+  let r = Str.regexp "V[0-9A-F]+" in 
   Str.string_match r x 0
 
 let is_adr x =
@@ -75,6 +76,7 @@ let ext_arg pks =
   match l with
   | Lsym n when is_reg n -> Reg (get_reg n)
   | Lsym n -> SAdr n
+  | Lnum n -> Cst n
   | _ -> failwith "Expecting arg..."
 
 let ext3_args pks =
@@ -121,13 +123,17 @@ let process_ld pks =
   let l2 = lex pks in
   let l3 = lex pks in
   match (l1, l2, l3) with
-  | (Lsym "V0", Lsep, Lsym m)   -> LD2 (Reg 0, SAdr m)
-  | (Lsym "I", Lsep, Lsym "DT") -> LD2 (I, DT)
+  | (Lsym n, Lsep, Lsym "DT") when is_reg n -> LD2 (Reg (get_reg n), DT)
+  | (Lsym "DT", Lsep, Lsym n) when is_reg n -> LD2 (DT, Reg (get_reg n))
+  | (Lsym "ST", Lsep, Lsym n) when is_reg n -> LD2 (ST, Reg (get_reg n))
+  | (Lsym n, Lsep, Lsym "ST") when is_reg n -> LD2 (Reg (get_reg n), ST)
   | (Lsym "I", Lsep, Lsym m)    -> LD (SAdr m)
-  | (Lsym "DT", Lsep, Lsym "I") -> LD2 (DT, I)
   | (Lsym n, Lsep, Lsym "K") when is_reg n  -> LD2 (SAdr n, K)
+  | (Lsym "B", Lsep, Lsym n) when is_reg n  -> LD2 (B, Reg (get_reg n))
+  | (Lsym "F", Lsep, Lsym n) when is_reg n  -> LD2 (F, Reg (get_reg n))
   | (Lsym n, Lsep, Lsym m) when is_reg n    -> LD2 (Reg (get_reg n), SAdr m)
-  | (_, _, _) -> failwith "Incorrect use of LD"
+  | (Lsym n, Lsep, Lnum m) when is_reg n    -> LD2 (Reg (get_reg n), Cst m)
+  | (a, _, b) -> pp_lexem a; pp_lexem b; failwith "Incorrect use of LD"
 
 
 let parser pks =
@@ -139,7 +145,13 @@ let parser pks =
     | Lnum n -> failwith ("useless num " ^ (string_of_int n))
     | Llbl -> failwith "empty label"
     | Lsym "CLS" -> CLS
+    | Lsym "CALL" ->
+      let a = ext_arg pks in CALL a
     | Lsym "RET" -> RET
+    | Lsym "DW" ->
+      let a = ext_arg pks in DW a
+    | Lsym "RND" ->
+      let a, b = ext2_args pks in RND (a, b)
     | Lsym "ADD" ->
       let a, b = ext2_args pks in ADD (a, b)
     | Lsym "JP" ->
@@ -164,6 +176,12 @@ let parser pks =
       let a, b = ext2_args pks in AND (a, b)
     | Lsym "DRW" ->
       let a, b, c = ext3_args pks in DRW (a, b, c)
+    | Lsym "SKP" ->
+      let a = ext_arg pks in SKP a
+    | Lsym "SKNP" ->
+      let a = ext_arg pks in SKNP a
+    | Lsym "SNE" ->
+      let a, b = ext2_args pks in SNE (a, b)
     | Lsym x ->
       match lex pks with
       | Llbl -> LBL x
@@ -280,6 +298,9 @@ let wb ins oc =
   | LD2 (Reg x, I) ->
     output_char oc (char_of_int (0xF0 + x));
     output_char oc (char_of_int 0x65)
+  | DW (Cst n) ->
+    output_char oc (char_of_int (n lsr 8));
+    output_char oc (char_of_int (n land 0x00FF))
   | END -> ()
   | _ -> ()
 
@@ -313,8 +334,8 @@ let parse_all pks =
 
 
 let _ =
-  let pks = fill_pks "test.txt" in
-  let oc = open_out_bin "test.rom" in
+  let pks = fill_pks "brix.txt" in
+  let oc = open_out_bin "brix.rom" in
   let l = parse_all pks in
   let l2 = set_adresses l in
   let l3 = replace_adresses l l2 in

@@ -1,10 +1,1 @@
-main:
-  CLS
-  DRW V0, V1, #E
-  LD I, loop
-  LD V0, loop
-  JP loop
-
-loop:
-  SE  V1, 12
-  DRW V0, V1, 3
+LD VE, 5
