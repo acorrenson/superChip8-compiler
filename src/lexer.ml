@@ -108,7 +108,7 @@ let rec lex pks =
       find_eol pks; lex pks
     | '#' ->
       fwd pks; Lnum (extract_hex pks)
-    | ' ' | '\n' | '\t' ->
+    | ' ' | '\n' | '\t' | '\r' ->
       fwd pks; lex pks
     | 'a'..'z' | 'A'..'Z' ->
       Lsym (extract_sym pks)
@@ -117,7 +117,7 @@ let rec lex pks =
     | ',' ->
       fwd pks; Lsep
     | _ as c ->
-      print_endline ("error : " ^ (String.make 1 c));
+      print_endline ("error : " ^ (String.make 1 c) ^ " .");
       failwith("error...")
   in
   if pks.pos >= pks.len then Lend

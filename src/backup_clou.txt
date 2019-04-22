@@ -1,0 +1,139 @@
+; INITIALISATION DE LA GRILLE
+
+    LD  VD, 0   ; Position initiale X du curseur
+    LD  VE, 0   ; Position initiale Y du curseur
+    LD  V3, 2   ; Pas de pion dans la main
+    LD  VA, 7   ; Premiere colonne de la grille
+    
+Changement_Colonne:
+    LD  VB, 0   ; Premier Pixel en haut de l'ecran
+
+Nouveau_Pixel:
+    LD  I, Pixel        ; Pointe sur le sprite d'un pixel
+    DRW VA, VB, 1       ; Affiche un pixel en VA, VB
+    DRW VB, VA, 1       ; Affiche un pixel en VB, VA
+    ADD VB, 1           ; Passe au pixel suivant
+    SE  VB, 32          ; Jump tant que non fin de colonne
+    JP  Nouveau_Pixel
+
+    ADD VA, 8               ; Changement de ligne
+    SE  VA, 39              ; Jump tant que grille pas pleine
+    JP  Changement_Colonne
+
+; INITIALISATION DES PIONTS
+
+    LD  VB, 1   ; Position Y du premier pion
+
+Changement_Ligne:
+    LD  VA, 1   ; Position X du pion, retour a la ligne
+
+Nouveau_Pion:
+    LD  I, Croix        ; Pointe sur le sprite de la croix
+    DRW VA, VB, 5       ; Affiche le sprite de la croix en VA, VB
+    LD  VC, 16          ; VC pour afficher deux lignes en meme temps
+    ADD VC, VB          ; Position en Y en fonction de VB
+    LD  I, Carre        ; Pointe sur le sprite du carre
+    DRW VA, VC, 5       ; Affiche le sprite du carre en VA, VB
+    ADD VA, 8           ; Passe à la colonne suivante
+    SE  VA, 33          ; Jump tant que colonnes non pleines
+    JP  Nouveau_Pion
+
+    ADD VB, 8               ; Changement de ligne
+    SE  VB, 17              ; Jump tant que grille pas pleine
+    JP  Changement_Ligne
+
+;TEMP !
+LD  VB, 1
+LD  VC, 1
+CALL Echanger_Pion
+CALL Echanger_Pion
+;TEMP !
+
+Fin:
+    JP  Fin
+
+; FONCTIONS
+
+Ligne_Grille:
+    LD  V0, VE          ; Variable temp pour stocker postion des Y
+    LD  V1, 4           ; Incrementation de 4 cases
+    LD  V2, 1           ; Pour soustraction de 1
+Loop_Ligne_Grille:
+    SNE V0, 0               ; Return si compteur V0 a 0
+    RET
+    ADD I, V1               ; Ajoute 4 a I pour Jump une ligne de sprite
+    SUB V0, V2               ; Retire 1 a V0
+    JP  Loop_Ligne_Grille   ; Jump tant que V0 different de 0
+
+Set_I_Case:
+    LD  I, Grille       ; I pointe sur les valeurs de la grilles en memoire
+    ADD I, VD           ; On ajoute VD a I pour le decalage des colonnes
+    CALL Ligne_Grille   ; On appel la fonction Ligne_Grille pour le decalage des lignes
+    RET
+
+Echanger_Pion:
+    CALL Set_I_Case     ; On place I sur la case actuel
+    LD  V0, I           ; On stock la valeur de la case dans V0
+    LD  V1, V0          ; V1 prend la valeur de la case
+    LD  V0, V3          ; V0 prend la valeur de la main
+    LD  I, V0           ; On remplace la valeur de la case par le pion en main
+
+    SNE V1, 2           ; Si V1 == 2
+    LD  I, Carre        ; I pointe sur Carre
+    SNE V1, 1           ; Si V1 == 1
+    LD  I, Croix        ; I pointe sur Croix
+    SE  V1, 0           ; Si V1 != 0
+    DRW VB, VC, 5       ; On efface le pion d'avant
+
+    SNE V3, 2           ; Si V3 == 2
+    LD  I, Carre        ; I pointe sur Carre
+    SNE V3, 1           ; Si V3 == 1
+    LD  I, Croix        ; I pointe sur Croix
+    SE  V3, 0           ; Si V3 != 0
+    DRW VB, VC, 5       ; On affiche le pion dans la main dans la case
+
+    SE  V1, 0           ; Si pion de la case != 0
+    JP  Else
+    SE  V3, 0           ; Ou si pion dans la main != 0
+    JP  Else
+    LD  V3, V0          ; On place le pion de la grille dans la main
+Else:
+    LD  V3, 0           ; Sinon la main est vide
+
+    RET                 ; Return de la fonction
+
+; STOCK DES SPRITES EN MEMOIRE
+
+Pixel:
+    DW  #8000
+
+Croix:
+    DW  #8850 ; Sprite du joueur croix
+    DW  #2050
+    DW  #8800
+
+Carre:
+    DW  #F888 ; Sprite du joueur carre
+    DW  #8888
+    DW  #F800
+
+; MEMOIRE DES PIONS DANS LA GRILLE
+
+Grille:
+    ; 00: case vide, 01: croix, 02: carre
+
+    ; Ligne 1
+    DW  #0101
+    DW  #0101
+
+    ; Ligne 2
+    DW  #0101
+    DW  #0101
+
+    ; Ligne 3
+    DW  #0202
+    DW  #0202
+
+    ; Ligne 4
+    DW  #0202
+    DW  #0202
