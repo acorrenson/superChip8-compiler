@@ -1,0 +1,58 @@
+; INITIALISATION DE LA GRILLE
+
+    LD  VA, 7
+
+Changement_Ligne:
+    LD  VB, 0
+
+Nouveau_Pixel:
+    LD  I, Pixel
+    DRW VA, VB, 1
+    DRW VB, VA, 1
+    ADD VB, 1
+    SE  VB, 32
+    JP  Nouveau_Pixel
+
+    ADD VA, 8
+    SE  VA, 39
+    JP  Changement_Ligne
+
+; INITIALISATION DES PIONTS
+
+    LD  VB, 1
+
+Changement_Ligne2:
+    LD  VA, 1
+
+Nouveau_Pion:
+    LD  I, Croix
+    DRW VA, VB, 5
+    LD  VC, 16
+    ADD VC, VB
+    LD  I, Carre
+    DRW VA, VC, 5
+    ADD VA, 8
+    SE  VA, 33
+    JP  Nouveau_Pion
+
+    ADD VB, 8
+    SE  VB, 17
+    JP  Changement_Ligne2
+
+Fin:
+    JP  Fin
+
+; STOCK DES SPRITES EN MEMOIRE
+
+Pixel:
+    DW  #8000
+
+Croix:
+    DW  #8850 ; Sprite du joueur croix
+    DW  #2050
+    DW  #8800
+
+Carre:
+    DW  #F888 ; Sprite du joueur carre
+    DW  #8888
+    DW  #F800
