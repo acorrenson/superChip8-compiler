@@ -160,17 +160,19 @@ let parse_all pks =
   in
   List.rev (parse_all_r pks [])
 
+
+let check_ext f =
+  let l = String.length f in
+  let ext = String.sub f (l - 4) 4 in
+  if ext <> ".src" then
+    failwith ("Incompatible extension "^ext)
+  else String.sub f 0 (l - 4)
+
 let name f =
-  let rec find_end i s =
-    if i < String.length s then (
-      match s.[i] with
-      | '.' -> String.sub s 0 i
-      | _ -> find_end (i+1) s
-    ) else f
-  in find_end 0 f
+  (check_ext f) ^".rom"
 
 let parse_file f =
-  let oc = open_out_bin ((name f)^".rom") in
+  let oc = open_out_bin (name f) in
   let pks = fill_pks f in
   let l_ins = parse_all pks in
   let addrs = set_addresses l_ins in
@@ -180,5 +182,5 @@ let parse_file f =
 
 let assembler =
   let fn = Sys.argv.(1) in
-  print_endline (name fn);
+  print_endline ("Created "^(name fn));
   parse_file fn
