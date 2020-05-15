@@ -4,9 +4,7 @@
 (* - and T. Barriere                     - *)
 (* --------------------------------------- *)
 
-open Str
 open Lexer
-open Printf
 
 (* Type for addresses and registers *)
 type arg =
@@ -70,39 +68,39 @@ let pp_ins i =
     print_endline ("ADD V" ^ (string_of_int n) ^ " " ^ (string_of_int m))
   | JP (Addr n) -> print_endline ("JP " ^ (string_of_int n))
   | JP (Saddr s) -> print_endline ("JP " ^ s)
-  | ADD (a, b) -> print_endline "ADD"
-  | LD a -> print_endline "LD a"
-  | LD2 (Reg a, Reg b) -> print_endline "LD V V"
-  | LD2 (Reg a, DT) -> print_endline "LD V DT"
-  | LD2 (DT, Reg a) -> print_endline "LD DT V"
-  | LD2 (ST, Reg a) -> print_endline "LD ST V"
-  | LD2 (F, Reg a) -> print_endline "LD F V"
-  | LD2 (B, Reg a) -> print_endline "LD B V"
-  | LD2 (Reg a, Cst k) -> print_endline "LD V cst"
-  | LD2 (Reg a, K) -> print_endline "LD V K"
-  | LD2 (I, Addr a) -> print_endline "LD V cst"
+  | ADD (_, _) -> print_endline "ADD"
+  | LD _ -> print_endline "LD a"
+  | LD2 (Reg _, Reg _) -> print_endline "LD V V"
+  | LD2 (Reg _, DT) -> print_endline "LD V DT"
+  | LD2 (DT, Reg _) -> print_endline "LD DT V"
+  | LD2 (ST, Reg _) -> print_endline "LD ST V"
+  | LD2 (F, Reg _) -> print_endline "LD F V"
+  | LD2 (B, Reg _) -> print_endline "LD B V"
+  | LD2 (Reg _, Cst _) -> print_endline "LD V cst"
+  | LD2 (Reg _, K) -> print_endline "LD V K"
+  | LD2 (I, Addr _) -> print_endline "LD V cst"
   | LD2 (a, b) -> print_endline "Ukn LD"; pp_arg a; pp_arg b
-  | XOR (a, b) -> print_endline "XOR"
-  | OR (a, b) -> print_endline "OR"
-  | AND (a, b) -> print_endline "AND"
-  | SHR (a, b) -> print_endline "SHR"
-  | SHL (a, b) -> print_endline "SHL"
-  | SKP a -> print_endline "SKP"
-  | SKNP a -> print_endline "SKNP"
-  | JP a -> print_endline "JP"
+  | XOR (_, _) -> print_endline "XOR"
+  | OR (_, _) -> print_endline "OR"
+  | AND _ -> print_endline "AND"
+  | SHR _ -> print_endline "SHR"
+  | SHL _ -> print_endline "SHL"
+  | SKP _ -> print_endline "SKP"
+  | SKNP _ -> print_endline "SKNP"
+  | JP _ -> print_endline "JP"
   | CLS -> print_endline "CLS"
   | RET -> print_endline "RET"
-  | SUB (a, b) -> print_endline "SUB"
-  | SUBN (a, b) -> print_endline "SUBN"
-  | DRW (a, b, c) -> print_endline "DRW"
-  | CALL a -> print_endline "CALL"
-  | SE (a, b) -> print_endline "SE"
-  | SNE (a, b) -> print_endline "SNE"
-  | DW a -> print_endline "DW"
-  | LBL a -> print_endline "lbl"
+  | SUB _ -> print_endline "SUB"
+  | SUBN _ -> print_endline "SUBN"
+  | DRW _ -> print_endline "DRW"
+  | CALL _ -> print_endline "CALL"
+  | SE _ -> print_endline "SE"
+  | SNE _ -> print_endline "SNE"
+  | DW _ -> print_endline "DW"
+  | LBL _ -> print_endline "lbl"
   | END -> print_endline "END"
-  | RND (a, b) -> print_endline "RND"
-  | JP2 (_, _) -> print_endline "JP2"
+  | RND _ -> print_endline "RND"
+  | JP2 _ -> print_endline "JP2"
 
 
 let get_reg r =
@@ -185,54 +183,51 @@ let process_ld pks =
 
 
 let parser pks =
-  let rec parser_r pks =
-    let l = lex pks in
-    match l with
-    | Lend -> END
-    | Lsep -> failwith "useless sep ,"
-    | Lnum n -> failwith ("useless num " ^ (string_of_int n))
-    | Llbl -> failwith "empty label"
-    | Lsym "CLS" -> CLS
-    | Lsym "CALL" ->
-      let a = ext_arg pks in CALL a
-    | Lsym "RET" -> RET
-    | Lsym "DW" ->
-      let a = ext_arg pks in DW a
-    | Lsym "RND" ->
-      let a, b = ext2_args pks in RND (a, b)
-    | Lsym "ADD" ->
-      let a, b = ext2_args pks in ADD (a, b)
-    | Lsym "JP" ->
-      let a = ext_arg pks in JP a
-    | Lsym "SE" ->
-      let a, b = ext2_args pks in SE (a, b)
-    | Lsym "LD" ->
-      process_ld pks
-    | Lsym "SHL" ->
-      let a, b = ext2_args pks in SHL (a, b)
-    | Lsym "SHR" ->
-      let a, b = ext2_args pks in SHR (a, b)
-    | Lsym "SUB" ->
-      let a, b = ext2_args pks in SUB (a, b)
-    | Lsym "SUBN" ->
-      let a, b = ext2_args pks in SUBN (a, b)
-    | Lsym "XOR" ->
-      let a, b = ext2_args pks in XOR (a, b)
-    | Lsym "OR" ->
-      let a, b = ext2_args pks in OR (a, b)
-    | Lsym "AND" ->
-      let a, b = ext2_args pks in AND (a, b)
-    | Lsym "DRW" ->
-      let a, b, c = ext3_args pks in DRW (a, b, c)
-    | Lsym "SKP" ->
-      let a = ext_arg pks in SKP a
-    | Lsym "SKNP" ->
-      let a = ext_arg pks in SKNP a
-    | Lsym "SNE" ->
-      let a, b = ext2_args pks in SNE (a, b)
-    | Lsym x ->
-      match lex pks with
-      | Llbl -> LBL x
-      | _ -> failwith ("unknown symbol " ^ x ^ " you may have forgot a :")
-  in
-  parser_r pks
+  let l = lex pks in
+  match l with
+  | Lend -> END
+  | Lsep -> failwith "useless sep ,"
+  | Lnum n -> failwith ("useless num " ^ (string_of_int n))
+  | Llbl -> failwith "empty label"
+  | Lsym "CLS" -> CLS
+  | Lsym "CALL" ->
+    let a = ext_arg pks in CALL a
+  | Lsym "RET" -> RET
+  | Lsym "DW" ->
+    let a = ext_arg pks in DW a
+  | Lsym "RND" ->
+    let a, b = ext2_args pks in RND (a, b)
+  | Lsym "ADD" ->
+    let a, b = ext2_args pks in ADD (a, b)
+  | Lsym "JP" ->
+    let a = ext_arg pks in JP a
+  | Lsym "SE" ->
+    let a, b = ext2_args pks in SE (a, b)
+  | Lsym "LD" ->
+    process_ld pks
+  | Lsym "SHL" ->
+    let a, b = ext2_args pks in SHL (a, b)
+  | Lsym "SHR" ->
+    let a, b = ext2_args pks in SHR (a, b)
+  | Lsym "SUB" ->
+    let a, b = ext2_args pks in SUB (a, b)
+  | Lsym "SUBN" ->
+    let a, b = ext2_args pks in SUBN (a, b)
+  | Lsym "XOR" ->
+    let a, b = ext2_args pks in XOR (a, b)
+  | Lsym "OR" ->
+    let a, b = ext2_args pks in OR (a, b)
+  | Lsym "AND" ->
+    let a, b = ext2_args pks in AND (a, b)
+  | Lsym "DRW" ->
+    let a, b, c = ext3_args pks in DRW (a, b, c)
+  | Lsym "SKP" ->
+    let a = ext_arg pks in SKP a
+  | Lsym "SKNP" ->
+    let a = ext_arg pks in SKNP a
+  | Lsym "SNE" ->
+    let a, b = ext2_args pks in SNE (a, b)
+  | Lsym x ->
+    match lex pks with
+    | Llbl -> LBL x
+    | _ -> failwith ("unknown symbol " ^ x ^ " you may have forgot a :")

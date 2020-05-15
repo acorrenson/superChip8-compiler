@@ -6,8 +6,6 @@
 (* This lexer is inspired by this document *)
 (* https://caml.inria.fr/pub/docs/oreilly-book/html/book-ora058.html *)
 
-open Printf
-
 (* Lexem type definition *)
 type lexem =
   | Lsym of string (* Instruction *)
@@ -33,7 +31,7 @@ let init_pks s = {string = s; pos = 0; len = String.length s}
 let fwd pks = pks.pos <- pks.pos + 1
 let fwdn pks n = pks.pos <- pks.pos + n
 
-(* extract a value mathing the property "pred" *)
+(* extract a value satisfying the property "pred" *)
 let extract pred pks =
   let st = pks.string and pos = pks.pos in
   let rec ext n = if n < pks.len && (pred st.[n]) then ext (n+1) else n in
@@ -54,7 +52,7 @@ let extract_sym =
 (* Turn a single hexadecimal digit into decimal *)
 let hex_of_char c =
   let hx = [
-      ('A', 10); ('B', 11); ('C', 12); ('D', 13); ('E', 14); ('F', 15)
+    ('A', 10); ('B', 11); ('C', 12); ('D', 13); ('E', 14); ('F', 15)
   ] in
   match c with
   | '0'..'9' -> int_of_string (String.make 1 c)
@@ -97,8 +95,8 @@ let fill_pks f =
   init_pks s
 
 
-(* Extract the next lexem from *)
- (* * a peakable string and update it *)
+(* Extract the next lexem from
+   a peakable string and update it *)
 let rec lex pks =
   let lex_c c =
     match c with

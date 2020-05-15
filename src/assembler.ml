@@ -25,7 +25,7 @@ let wb ins oc =
   | JP (Addr a) ->
     output_char oc (char_of_int (0x10 + (hl a)));
     output_char oc (char_of_int (hr a))
-  | JP2 (Reg x, Addr a) ->
+  | JP2 (Reg _, Addr a) ->
     output_char oc (char_of_int (0xB0 + (hl a)));
     output_char oc (char_of_int (hr a))
   | CLS ->
@@ -139,7 +139,7 @@ let set_addresses l =
   set_rec l [] 0x200
 
 (* Replace all labels by their adresses *)
-let rec replace_addresses l a =
+let replace_addresses l a =
   let rep x = 
     match x with
     | LD2 (I, (Saddr s)) -> LD2 (I, (Addr (List.assoc s a)))

@@ -1,0 +1,4 @@
+(executable
+  (name assembler)
+  (public_name chip8asm)
+  (libraries str))
